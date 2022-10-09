@@ -53,24 +53,24 @@ REPORT yes4sql MESSAGE-ID zmsgs.
 
 DATA:
 *     reference to wrapper class of control based on OO Framework
-        g_editor TYPE REF TO cl_gui_textedit,
+  g_editor           TYPE REF TO cl_gui_textedit,
 *     reference to custom container: necessary to bind TextEdit Control
-        g_editor_container TYPE REF TO cl_gui_custom_container,
+  g_editor_container TYPE REF TO cl_gui_custom_container,
 *     other variables
-        g_ok_code LIKE sy-ucomm,         " return code from screen
-        g_repid LIKE sy-repid.
+  g_ok_code          LIKE sy-ucomm,         " return code from screen
+  g_repid            LIKE sy-repid.
 
-DATA: rows(8)   TYPE c,
-      isopen    TYPE c,     "Radio Button
-      isnatv    TYPE c,
-      delim     TYPE c.
+DATA: rows(8) TYPE c,
+      isopen  TYPE c,     "Radio Button
+      isnatv  TYPE c,
+      delim   TYPE c.
 
-DATA: code      TYPE TABLE OF rssource-line,
-      prog(8)   TYPE c,
-      msg(120)  TYPE c,
-      lin(3)    TYPE c,
-      wrd(10)   TYPE c,
-      off(3)    TYPE c.
+DATA:  code     TYPE TABLE OF rssource-line.
+*      prog(8)  TYPE c,
+*      msg(120) TYPE c,
+*      lin(3)   TYPE c,
+*      wrd(10)  TYPE c,
+*      off(3)   TYPE c.
 
 DATA: onelinecode LIKE LINE OF code.
 
@@ -90,7 +90,9 @@ TYPES: BEGIN OF mytable_line,
 DATA gt_mytable TYPE TABLE OF mytable_line.
 DATA gt_sql     TYPE TABLE OF mytable_line.
 
-DATA: myline LIKE LINE OF gt_mytable.
+DATA: myline    LIKE LINE OF gt_mytable,
+      oneline   LIKE LINE OF gt_mytable,
+      lv_rowcnt TYPE i.
 
 DATA: first         TYPE i,
       numcols       TYPE i,
@@ -117,18 +119,18 @@ TYPES: BEGIN OF t_fldtyp,
          hdr(10) TYPE c,
        END OF t_fldtyp.
 
-DATA: gt_fldtyp  TYPE STANDARD TABLE OF  t_fldtyp,
-      wa_fldtyp  TYPE t_fldtyp.
+DATA: gt_fldtyp TYPE STANDARD TABLE OF  t_fldtyp,
+      wa_fldtyp TYPE t_fldtyp.
 
 FIELD-SYMBOLS: <fs_fldtyp> TYPE t_fldtyp.
 
 TYPES: BEGIN OF t_token,
-          token(40)  TYPE c,
+         token(40) TYPE c,
        END   OF t_token.
 
-DATA: gt_token  TYPE STANDARD TABLE OF  t_token,
-      wa_token  TYPE t_token,
-      w_hash    TYPE i.
+DATA: gt_token TYPE STANDARD TABLE OF  t_token,
+      wa_token TYPE t_token,
+      w_hash   TYPE i.
 
 FIELD-SYMBOLS: <fs_token> TYPE t_token.
 
@@ -146,29 +148,28 @@ CONSTANTS: con_tab TYPE c VALUE cl_abap_char_utilities=>horizontal_tab .
 CLASS cl_gui_cfw DEFINITION LOAD.
 
 TYPES: BEGIN OF t_obj_table,
-          line(255) TYPE x,
+         line(255) TYPE x,
        END OF t_obj_table.
 
-DATA: obj_table   TYPE STANDARD TABLE OF t_obj_table,
-      sel_flash   TYPE STANDARD TABLE OF t_obj_table,
-      music_mp3   TYPE STANDARD TABLE OF t_obj_table.
+DATA: obj_table TYPE STANDARD TABLE OF t_obj_table,
+      sel_flash TYPE STANDARD TABLE OF t_obj_table,
+      music_mp3 TYPE STANDARD TABLE OF t_obj_table.
 
 DATA: sel_flash_url(255),
       music_mp3_url(255).
 
 TYPES: BEGIN OF t_song,
-        song TYPE char12,
+         song TYPE char12,
        END OF t_song.
 
-DATA: gt_song   TYPE STANDARD TABLE OF t_song,
-      wa_song   TYPE t_song,
-      songnum   TYPE i.
+DATA: gt_song TYPE STANDARD TABLE OF t_song,
+      wa_song TYPE t_song,
+      songnum TYPE i.
 
-DATA: dockingbotm       TYPE REF TO  cl_gui_docking_container,
-      html_viewer       TYPE REF TO  cl_gui_html_viewer.
+DATA: dockingbotm TYPE REF TO  cl_gui_docking_container,
+      html_viewer TYPE REF TO  cl_gui_html_viewer.
 
-PARAMETERS: p_pass  TYPE char8   OBLIGATORY LOWER CASE,
-            pp_dir  TYPE char80  DEFAULT 'c:\tmp'  LOWER CASE.
+PARAMETERS: p_pass  TYPE char8   OBLIGATORY LOWER CASE.
 
 *&---------------------------------------------------------------------*
 *                       INITIALIZATION EVENT                           *
@@ -303,55 +304,56 @@ START-OF-SELECTION.
 *    html_viewer->free( ).
 *  ENDIF.
 
-  MOVE pp_dir TO p_dir.
+*  MOVE pp_dir TO p_dir.
+*
+*  CALL METHOD cl_gui_frontend_services=>directory_exist
+*    EXPORTING
+*      directory            = p_dir
+*    RECEIVING
+*      result               = w_result
+*    EXCEPTIONS
+*      cntl_error           = 1
+*      error_no_gui         = 2
+*      wrong_parameter      = 3
+*      not_supported_by_gui = 4
+*      OTHERS               = 5.
+*
+*  IF sy-subrc <> 0 OR w_result <> 'X'.
+*    CALL METHOD cl_gui_frontend_services=>directory_create
+*      EXPORTING
+*        directory                = p_dir
+*      CHANGING
+*        rc                       = w_rc
+*      EXCEPTIONS
+*        directory_create_failed  = 1
+*        cntl_error               = 2
+*        error_no_gui             = 3
+*        directory_access_denied  = 4
+*        directory_already_exists = 5
+*        path_not_found           = 6
+*        unknown_error            = 7
+*        not_supported_by_gui     = 8
+*        wrong_parameter          = 9
+*        OTHERS                   = 5.
+*  ENDIF.
+*
+*  FIND '\' IN p_dir.
+*
+*  IF sy-subrc = 0.
+*    CONCATENATE p_dir '\jnc.ab4' INTO wfilename.
+*  ELSE.
+*    CONCATENATE p_dir '/jnc.ab4' INTO wfilename.
+*  ENDIF.
+*
+*  CONCATENATE `Possible Wrong SQL - see ` wfilename INTO wtxt1.
 
-  CALL METHOD cl_gui_frontend_services=>directory_exist
-    EXPORTING
-      directory            = p_dir
-    RECEIVING
-      result               = w_result
-    EXCEPTIONS
-      cntl_error           = 1
-      error_no_gui         = 2
-      wrong_parameter      = 3
-      not_supported_by_gui = 4
-      OTHERS               = 5.
-
-  IF sy-subrc <> 0 OR w_result <> 'X'.
-    CALL METHOD cl_gui_frontend_services=>directory_create
-      EXPORTING
-        directory                = p_dir
-      CHANGING
-        rc                       = w_rc
-      EXCEPTIONS
-        directory_create_failed  = 1
-        cntl_error               = 2
-        error_no_gui             = 3
-        directory_access_denied  = 4
-        directory_already_exists = 5
-        path_not_found           = 6
-        unknown_error            = 7
-        not_supported_by_gui     = 8
-        wrong_parameter          = 9
-        OTHERS                   = 5.
-  ENDIF.
-
-  FIND '\' IN p_dir.
-
-  IF sy-subrc = 0.
-    CONCATENATE p_dir '\jnc.ab4' INTO wfilename.
-  ELSE.
-    CONCATENATE p_dir '/jnc.ab4' INTO wfilename.
-  ENDIF.
-
-  CONCATENATE `Possible Wrong SQL - see ` wfilename INTO wtxt1.
+  MOVE `Possible Wrong SQL - see ` TO wtxt1.
 
   PERFORM f_encrypt.
 
   IF w_hash <> 141824.  "ojnc
     MESSAGE e999(zmsgs) WITH 'Password Mismatch'.
   ENDIF.
-
 
   MOVE `X` TO isnatv.
   CLEAR isopen.
@@ -539,7 +541,7 @@ FORM f_runsql.
   MOVE 0 TO : first, numhdrs.
   LOOP AT gt_mytable INTO myline.
     ADD 1 TO numhdrs.
-    IF STRLEN( myline ) = 0.
+    IF strlen( myline ) = 0.
       CONTINUE.
     ENDIF.
 
@@ -584,7 +586,7 @@ FORM f_runsql.
 
     LOOP AT gt_token ASSIGNING <fs_token>.
 
-      IF STRLEN( <fs_token>-token ) = 0.
+      IF strlen( <fs_token>-token ) = 0.
         CONTINUE.
       ENDIF.
 
@@ -615,7 +617,7 @@ FORM f_runsql.
 
   ENDLOOP.
 
-  IF LINES( gt_fldtyp ) = 0.
+  IF lines( gt_fldtyp ) = 0.
     CALL FUNCTION `POPUP_TO_INFORM`
       EXPORTING
         titel = g_repid
@@ -629,7 +631,7 @@ FORM f_runsql.
   REFRESH gt_sql.
 
   LOOP AT gt_mytable INTO myline.
-    IF STRLEN( myline ) = 0.
+    IF strlen( myline ) = 0.
       CONTINUE.
     ENDIF.
 
@@ -657,7 +659,7 @@ FORM f_runsql.
 
       LOOP AT gt_token ASSIGNING <fs_token>.
 
-        IF STRLEN( <fs_token>-token ) = 0.
+        IF strlen( <fs_token>-token ) = 0.
           CONTINUE.
         ENDIF.
 
@@ -704,7 +706,7 @@ FORM f_runsql.
 
   ENDLOOP.
 
-  IF LINES( gt_sql ) = 0.
+  IF lines( gt_sql ) = 0.
     CALL FUNCTION `POPUP_TO_INFORM`
       EXPORTING
         titel = g_repid
@@ -716,7 +718,7 @@ FORM f_runsql.
   APPEND `PROGRAM jncsProgram.` TO code.
   APPEND `` TO code.
 
-  APPEND `DATA : BEGIN OF i_tab OCCURS 0,` TO code.
+  APPEND ` DATA : BEGIN OF i_tab OCCURS 0,` TO code.
 
   LOOP AT gt_fldtyp INTO wa_fldtyp.
     CONCATENATE  `         ` wa_fldtyp-fld  ` TYPE ` wa_fldtyp-typ `,` INTO mystring.
@@ -730,18 +732,31 @@ FORM f_runsql.
   APPEND `       l_kount    TYPE i.` TO code.
   APPEND `` TO code.
 
-  APPEND `DATA : mystring TYPE string.`          TO code.
-  APPEND `DATA : mytitle  TYPE lvc_title.`       TO code.
+  APPEND ` DATA : mystring TYPE string.`          TO code.
+  APPEND ` DATA : mytitle  TYPE lvc_title.`       TO code.
   APPEND `` TO code.
 
   APPEND `DATA: rows      TYPE i.` TO code.
   APPEND `` TO code.
 
-  APPEND `DATA: exsm TYPE string.`          TO code.
-  APPEND `DATA: exlm TYPE string.`          TO code.
-  APPEND `DATA: myex TYPE REF TO CX_ROOT.`  TO code.
+  APPEND ` DATA: exsm TYPE string.`          TO code.
+  APPEND ` DATA: exlm TYPE string.`          TO code.
+  APPEND ` DATA: myex TYPE REF TO CX_ROOT.`  TO code.
 
   APPEND `` TO code.
+
+  APPEND ` DATA: lo_sql    TYPE REF TO cl_sql_statement,` TO code.
+  APPEND `       lo_result TYPE REF TO cl_sql_result_set,` TO code.
+  APPEND `       lo_exc    TYPE REF TO cx_sql_exception,` TO code.
+  APPEND `       lt_cols   TYPE adbc_column_tab,` TO code.
+  APPEND `       lv_query  TYPE string,` TO code.
+  APPEND `       lo_output TYPE REF TO data,` TO code.
+  APPEND `       dref2     TYPE REF TO data.` TO code.
+
+  APPEND `` TO code.
+  APPEND `" PERFORM DoSQL.` TO code.
+  APPEND `` TO code.
+
   APPEND `*&--------------------------------------------------------------------*` TO code.
   APPEND `*&      Form  DoSQL` TO code.
   APPEND `*&--------------------------------------------------------------------*` TO code.
@@ -772,57 +787,47 @@ FORM f_runsql.
   APPEND `` TO code.
 
   IF isopen <> `X`.
-    APPEND `    CLEAR l_kount.`  TO code.
-    APPEND `    EXEC SQL.`  TO code.
-    APPEND `      OPEN c1 FOR ` TO code.
-  ENDIF.
-
-  MOVE 0 TO first.
-  LOOP AT gt_sql INTO myline.
-    IF isopen = `X` AND first = 0.
-      FIND ` From ` IN myline IGNORING CASE.
-      IF sy-subrc = 0.
-        APPEND `INTO TABLE i_tab` TO code.
-        IF aggfun = 0.
-          APPEND `UP TO ROWS rows` TO code.
-        ENDIF.
-        MOVE 1 TO first.
+    CLEAR oneline.
+    myline = ` lv_query = `.
+    lv_rowcnt = lines( gt_sql ).
+    LOOP AT gt_sql INTO oneline.
+      IF sy-tabix = 1.
+        CONCATENATE myline ` CONDENSE(``` oneline ```` INTO myline SEPARATED BY space.
+        APPEND myline TO code.
+      ELSE.
+        CONCATENATE ` && ``` oneline  ```` INTO myline SEPARATED BY space.
+        APPEND myline TO code.
       ENDIF.
-    ENDIF.
-    APPEND myline TO code.
-  ENDLOOP.
+    ENDLOOP.
+    APPEND ` ).` TO code.
+  ENDIF.
+  APPEND `` TO code.
 
   IF isopen = `X`.
-    IF first = 0.
-      CALL FUNCTION `POPUP_TO_INFORM`
-        EXPORTING
-          titel = g_repid
-          txt2  = `Open SQL Without a FROM`
-          txt1  = `Correct & retry`.
-      RETURN.
+    LOOP AT gt_sql INTO myline.
+      APPEND myline TO code.
+    ENDLOOP.
+
+    APPEND `INTO TABLE @i_tab` TO code.
+    IF aggfun = 0.
+      CONCATENATE `  UP TO ` nrows `rows` INTO mystring SEPARATED BY space.
+      APPEND mystring TO code.
     ENDIF.
     APPEND `.` TO code.
   ELSE.
-    APPEND `    ENDEXEC.`  TO code.
-    APPEND `` TO code.
-    APPEND `    DO.`  TO code.
-    APPEND `      EXEC SQL.`  TO code.
-    APPEND `        FETCH NEXT c1 INTO :r_tab `  TO code.
-    APPEND `      ENDEXEC.`  TO code.
-    APPEND `      IF sy-subrc <> 0.`  TO code.
-    APPEND `         EXIT.`  TO code.
-    APPEND `      ENDIF.`  TO code.
-    APPEND `      APPEND r_tab TO i_tab.`  TO code.
-    APPEND `      ADD 1 TO l_kount.`  TO code.
-    APPEND `      IF L_KOUNT >= ROWS.`  TO code.
-    APPEND `         EXIT.`  TO code.
-    APPEND `      ENDIF.`  TO code.
-    APPEND `    ENDDO.`  TO code.
-    APPEND `` TO code.
-    APPEND `    EXEC SQL.`  TO code.
-    APPEND `      CLOSE c1`  TO code.
-    APPEND `    ENDEXEC.`  TO code.
-    APPEND `` TO code.
+
+    APPEND ` TRY.` TO code.
+    APPEND `     CREATE OBJECT lo_sql. ` TO code.
+    APPEND `     GET REFERENCE OF I_TAB[] INTO lo_output. ` TO code.
+    APPEND `     lo_result = lo_sql->execute_query( lv_query ). ` TO code.
+    APPEND `     lo_result->set_param_table( itab_ref = lo_output  ). ` TO code.
+    CONCATENATE `     lo_result->next_package( UPTO = ` nrows ` ).` INTO mystring SEPARATED BY space.
+    APPEND mystring TO code.
+    APPEND `   CATCH cx_sql_exception INTO lo_exc. ` TO code.
+    APPEND `     MESSAGE lo_exc TYPE 'I' DISPLAY LIKE 'E'. ` TO code.
+    APPEND ` ENDTRY. ` TO code.
+    APPEND ` ` TO code.
+
   ENDIF.
 
   APPEND `` TO code.
@@ -831,12 +836,7 @@ FORM f_runsql.
   APPEND `  CATCH CX_ROOT INTO myex.` TO code.
   APPEND `    exsm =  myex->if_message~get_text( ).` TO code.
   APPEND `    exlm =  myex->if_message~get_longtext( ).` TO code.
-
-  IF isopen <> `X`.
-    APPEND `    EXEC SQL.`  TO code.
-    APPEND `       CLOSE c1`  TO code.
-    APPEND `    ENDEXEC.`  TO code.
-  ENDIF.
+  APPEND `` TO code.
 
   APPEND `    CALL FUNCTION ``POPUP_TO_INFORM``` TO code.
   APPEND `      EXPORTING` TO code.
@@ -966,24 +966,26 @@ FORM f_runsql.
   APPEND `` TO code.
   APPEND `ENDFORM.                    "ZJNC_DUMP_LIST` TO code.
 
-  CALL FUNCTION `GUI_DOWNLOAD`
-    EXPORTING
-      filename = wfilename
-    TABLES
-      data_tab = code.
-
-
   IF sy-subrc <> 0.
     MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
             WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
   ENDIF.
 
 
-  GENERATE SUBROUTINE POOL code   NAME    prog
-                                  MESSAGE msg
-                                  LINE    lin
-                                  WORD    wrd
-                                  OFFSET  off.
+*  GENERATE SUBROUTINE POOL code   NAME    prog
+*                                  MESSAGE msg
+*                                  LINE    lin
+*                                  WORD    wrd
+*                                  OFFSET  off.
+
+  GENERATE SUBROUTINE POOL code NAME DATA(prog)
+           MESSAGE                   DATA(mess)
+           INCLUDE                   DATA(incl)
+           LINE                      DATA(line)
+           WORD                      DATA(wrd)
+           OFFSET                    DATA(off)
+           MESSAGE-ID                DATA(mid)
+           SHORTDUMP-ID              DATA(sid).
 
   IF sy-subrc <> 0.
     CALL FUNCTION `POPUP_TO_INFORM`
@@ -991,6 +993,15 @@ FORM f_runsql.
         titel = g_repid
         txt2  = `Generate SUBROUTINE POOL Failed`
         txt1  = wtxt1.
+    cl_demo_output=>display(
+      |MESSAGE:      { mess }\n| &&
+      |INCLUDE:      { incl }\n| &&
+      |LINE:         { line }\n| &&
+      |WORD:         { wrd  }\n| &&
+      |OFFSET:       { off  }\n| &&
+      |MESSAGE-ID:   { CONV string( mid ) }\n| &&
+      |SHORTDUMP-ID: { sid }| ).
+    PERFORM f_dumpcode.
   ELSE.
     PERFORM dosql IN PROGRAM (prog).
     IF sy-subrc <> 0.
@@ -999,6 +1010,15 @@ FORM f_runsql.
           titel = g_repid
           txt2  = `Generate SUBROUTINE POOL Succeeded BUT Call failed`
           txt1  = wtxt1.
+      cl_demo_output=>display(
+        |MESSAGE:      { mess }\n| &&
+        |INCLUDE:      { incl }\n| &&
+        |LINE:         { line }\n| &&
+        |WORD:         { wrd  }\n| &&
+        |OFFSET:       { off  }\n| &&
+        |MESSAGE-ID:   { CONV string( mid ) }\n| &&
+        |SHORTDUMP-ID: { sid }| ).
+      PERFORM f_dumpcode.
     ENDIF.
   ENDIF.
 
@@ -1012,7 +1032,7 @@ FORM f_get_comment.
   CLEAR: wcomment, myoff.
   FIND `"` IN myline MATCH OFFSET myoff.
   IF myoff IS NOT INITIAL.
-    mylen = STRLEN( myline ).
+    mylen = strlen( myline ).
     mylen = mylen - myoff.
     ADD 1 TO myoff.
     IF mylen <> 0.
@@ -1022,6 +1042,25 @@ FORM f_get_comment.
     ENDIF.
   ENDIF.
 ENDFORM.                    "f_get_comment
+
+*&--------------------------------------------------------------------*
+*&      Form  f_dumpcode
+*&--------------------------------------------------------------------*
+FORM f_dumpcode.
+
+  CALL METHOD g_editor->set_text_as_r3table
+    EXPORTING
+      table  = code
+    EXCEPTIONS
+      OTHERS = 1.
+  IF sy-subrc NE 0.
+    CALL FUNCTION `POPUP_TO_INFORM`
+      EXPORTING
+        titel = g_repid
+        txt2  = `Set_Text_As_R3Table Failed`
+        txt1  = `Unable to show CODE`.
+  ENDIF.
+ENDFORM.
 
 *&--------------------------------------------------------------------*
 *&      Form  f_encrypt
