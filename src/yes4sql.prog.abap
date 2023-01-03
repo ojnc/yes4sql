@@ -1,25 +1,20 @@
 REPORT yes4sql MESSAGE-ID zmsgs.
 
 * SQL tool for SAP ABAP Programmers - BOTH OPEN & NATIVE SQLs
-*              very light - approx. 20KB
 *
 * Objective - to see JOINS in SAP to confirm or discover relationships
 *             and to see Data side by Side
 
 * Read "SAP Table and Field search strategies"
-*   in http://sapabap.iespana.es/sapabap/sap/info/search_fields_tables.htm
-*  Use SAP_TABLES.exe Document in http://www.sap-img.com
+*   https://blogs.sap.com/2019/06/05/methods-to-find-the-tables-in-sap/
+*   https://eursap.eu/2021/05/21/sap-tip-finding-a-table-name-from-a-field-name/
 *  and many other excellent resources to navigate the cryptic tables & Colums of SAP
 *
-* SE16N is the best for 1 table inspection & you can open several sessions if you have more than 1 table.
+* SE16 is the best for 1 table inspection & you can open several sessions if you have more than 1 table.
 * You may "hate joins" and prefer looping matches on Internal Tables.
 * However if you wish to see the relationships in DATA VISIBLE format NOTHING succeeds like JOINs
-* I came in with a Strong Oracle TOAD background and feel comfortable in seeing DATA together
 
-* The decision to use JOIN or use iterative Internal Table match with single select
-* does not detract from the visibility of tracking relationships
-
-* SQL Must be SELECT
+* SQL Must be SELECT or WITH
 * List of Columns Selected given in a BEGIN END nest
 *  1st Field 2nd type(optional) "comments
 *  if type is omitted then type is taken to be same as field
@@ -31,22 +26,20 @@ REPORT yes4sql MESSAGE-ID zmsgs.
 
 * If you use NATIVE SQL make sure you have :SY-MANDT filter in WHERE Clause
 
-* Program generates c:\tmp\jnc.ab4
-* jnc.ab4 is the generated ABAP program for diagnostics and possible reuse
+* ABAP program in memory shown for diagnostics and possible reuse
 
 * JOINs and SUBQUERIES are NOT ALLOWED for
 *           Pooled Tables, Clustered Tables & Projection Views
 *   Even AGGREGATE Functions are NOT ALLOWED!   -- thse restrictions are inherent in SAP
 
 * So this tool is more useful for TRANSPARENT TABLES only!
-* For Pool & Cluster use SE16N
+* For Pool & Cluster use SE16
 
 *  Author Jayanta Narayan Choudhuri
 *         Flat 302
 *         395 Jodhpur Park
 *         Kolkata 700 068
 *       Email ssscal@gmail.com
-*       URL:  http://www.geocities.com/ojnc
 
 *  TextEdit Control Tool Code Copied from SAP Standard Example saptextedit_demo_3
 *  This is FREE software with FULL responsibility on USER & anyone changing sourcecode!
@@ -645,14 +638,16 @@ FORM f_runsql.
 
     IF first = 0.
       FIND ` Select ` IN myline IGNORING CASE.
-
       IF sy-subrc <> 0.
-        CALL FUNCTION `POPUP_TO_INFORM`
-          EXPORTING
-            titel = g_repid
-            txt2  = `SELECT DMLs Only Please!`
-            txt1  = `Correct & Retry`.
-        RETURN.
+        FIND ` With ` IN myline IGNORING CASE.
+        IF sy-subrc <> 0.
+          CALL FUNCTION `POPUP_TO_INFORM`
+            EXPORTING
+              titel = g_repid
+              txt2  = `SELECT DMLs Only Please!`
+              txt1  = `Correct & Retry`.
+          RETURN.
+        ENDIF.
       ENDIF.
 
       SPLIT myline AT space INTO TABLE gt_token.
@@ -665,7 +660,7 @@ FORM f_runsql.
 
         TRANSLATE <fs_token>-token TO UPPER CASE.
 
-        IF <fs_token>-token  <> 'SELECT'.
+        IF NOT ( <fs_token>-token  = 'SELECT' OR  <fs_token>-token  = 'WITH' ).
           CALL FUNCTION `POPUP_TO_INFORM`
             EXPORTING
               titel = g_repid
